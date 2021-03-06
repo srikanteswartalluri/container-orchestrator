@@ -1,0 +1,8 @@
+flask
+flask-restful
+flask-mongoengine
+python-dotenv
+pika
+requests
+pymongo
+schedule

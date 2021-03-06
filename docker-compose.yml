@@ -1,0 +1,126 @@
+version: '3.1'
+
+services:
+  controller:
+    container_name: co_controller
+    build: src/controller/
+    networks:
+      - co
+
+  apiserver:
+    container_name: co_api
+    build: src/api-server/
+    ports:
+      - 5000:5000
+    networks:
+      - co
+
+  queue:
+    image: 'rabbitmq:3-management'
+    container_name: 'coqueue'
+    hostname: 'coqueue'
+    # add exchange as part of startup
+    environment:
+        RABBITMQ_DEFAULT_USER: root
+        RABBITMQ_DEFAULT_PASS: root123
+    ports:
+        - 15672:15672
+        - 5672:5672
+    networks:
+      - co
+
+  database:
+    image: 'mongo'
+    container_name: 'co_repo'
+    environment:
+        MONGO_INITDB_ROOT_USERNAME: root
+        MONGO_INITDB_ROOT_PASSWORD: root123
+        MONGO_INITDB_DATABASE: co_db
+    volumes:
+        - ./init-repo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+        - co_data:/data/db
+    ports:
+        - 27017:27017
+    networks:
+      - co
+
+  worker_node_1:
+    build: src/node-agent/
+
+    container_name: co_node_12375
+    privileged: yes
+    ports:
+      - 12375:2375
+      - 12385:2376
+    environment:
+      DOCKER_TLS_CERTDIR: ""
+    networks:
+      - co
+  worker_node_2:
+    build: src/node-agent/
+    container_name: co_node_12376
+    privileged: yes
+    ports:
+      - 12376:2375
+      - 12386:2376
+    environment:
+      DOCKER_TLS_CERTDIR: ""
+    networks:
+      - co
+  worker_node_3:
+    build: src/node-agent/
+    container_name: co_node_12377
+    privileged: yes
+    ports:
+      - 12377:2375
+      - 12387:2376
+    environment:
+      DOCKER_TLS_CERTDIR: ""
+    networks:
+      - co
+  worker_node_4:
+    build: src/node-agent/
+    container_name: co_node_12378
+    privileged: yes
+    ports:
+      - 12378:2375
+      - 12388:2376
+    environment:
+      DOCKER_TLS_CERTDIR: ""
+    networks:
+      - co
+  worker_node_5:
+    build: src/node-agent/
+    container_name: co_node_12379
+    privileged: yes
+    ports:
+      - 12379:2375
+      - 12389:2376
+    environment:
+      DOCKER_TLS_CERTDIR: ""
+    networks:
+      - co
+  infra_node:
+    build: .
+    container_name: infra-node
+    command: sh -c 'sleep 120 && python3 /src/node-agent/bringup_nodes.py 5'
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    # add node db entry, add queues, start node agent
+    networks:
+      - co
+    depends_on:
+      - database
+      - queue
+      - apiserver
+      - worker_node_1
+      - worker_node_2
+      - worker_node_3
+      - worker_node_4
+      - worker_node_5
+volumes: 
+    co_data:
+
+networks:
+    co:
+
